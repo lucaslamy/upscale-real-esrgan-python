@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 
 """
-Upscale_CPU.py : version 100% CPU, sans Vulkan ni GPU, pour environnements sans accès root (ex: o2switch).
-Utilise Real-ESRGAN via PyTorch (CPU), compatible images + vidéos, supporte multi-passes et CLI.
+Upscale_CPU.py: 100% CPU version, without Vulkan or GPU, for environments without root access (e.g., o2switch).
+Uses Real-ESRGAN via PyTorch (CPU), supports both images and videos, multi-pass, and CLI interface.
 
-Dépendances :
+Dependencies:
   - torch (CPU)
   - realesrgan
   - opencv-python
   - imageio[ffmpeg]
 
-Installation :
+Installation:
   $ python3 -m venv venv
   $ source venv/bin/activate
   $ pip install --upgrade pip
   $ pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
   $ pip install realesrgan opencv-python imageio[ffmpeg]
 
-Utilisation :
+Usage:
   $ python upscale_cpu.py input.jpg output.png --passes 2 --model RealESRGAN_x4plus
   $ python upscale_cpu.py input.mp4 output.mp4 --passes 4 --model RealESRGAN_x4plus
 """
@@ -28,7 +28,6 @@ warnings.filterwarnings("ignore", message=".*functional_tensor module is depreca
 import os
 import sys
 import argparse
-import warnings
 from pathlib import Path
 from time import time
 
@@ -39,14 +38,14 @@ import torch
 from tqdm import tqdm
 import numpy as np
 
-# ▶ Supprimer le warning torchvision obsolète
+# ▶ Suppress torchvision legacy warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="torchvision.transforms.functional_tensor")
 
-# ▶ Choix possibles
+# ▶ Available options
 PASSES_ALLOWED = [1, 2, 4, 8, 16]
 MODELS = ["RealESRGAN_x4plus", "RealESRGAN_x4plus_anime_6B"]
 
-# ▶ Chemin des modèles (manuels)
+# ▶ Path to manually downloaded models
 MODEL_DIR = Path("models")
 MODEL_DIR.mkdir(exist_ok=True)
 MODEL_PATHS = {
@@ -54,7 +53,7 @@ MODEL_PATHS = {
     "RealESRGAN_x4plus_anime_6B": MODEL_DIR / "RealESRGAN_x4plus_anime_6B.pth"
 }
 
-# ▶ Initialisation du bon modèle (RRDB ou VGG)
+# ▶ Initialize the proper model (RRDB or VGG)
 def get_model_instance(model_name):
     if model_name == "RealESRGAN_x4plus":
         from basicsr.archs.rrdbnet_arch import RRDBNet
@@ -65,13 +64,13 @@ def get_model_instance(model_name):
         return SRVGGNetCompact(num_in_ch=3, num_out_ch=3,
                                num_feat=64, num_conv=6, upscale=4, act_type='prelu')
     else:
-        raise ValueError(f"Modèle inconnu : {model_name}")
+        raise ValueError(f"Unknown model: {model_name}")
 
-# ▶ Vérifie si c'est une vidéo
+# ▶ Check if input is a video file
 def is_video(path):
     return Path(path).suffix.lower() in {".mp4", ".mov", ".avi", ".webm", ".mkv"}
 
-# ▶ Upscale image (multi-passes)
+# ▶ Upscale a single image (multi-pass)
 def upscale_frame(modeler, frame, passes):
     img = frame
     for pass_num in range(1, passes + 1):
@@ -83,9 +82,9 @@ def upscale_frame(modeler, frame, passes):
             tqdm.write(f"   ↪ Pass {pass_num}/{passes}")
     return img
 
-# ▶ Image
+# ▶ Image processing pipeline
 def upscale_image(input_path, output_path, model_name, passes):
-    print("🖼  Chargement de l'image...")
+    print("🖼  Loading image...")
     device = torch.device("cpu")
     model_path = str(MODEL_PATHS[model_name])
     model_instance = get_model_instance(model_name)
@@ -100,7 +99,7 @@ def upscale_image(input_path, output_path, model_name, passes):
 
     image = cv2.imread(str(input_path))
     if image is None:
-        print(f"❌ Erreur : impossible de lire l'image '{input_path}'")
+        print(f"❌ Error: could not read image '{input_path}'")
         sys.exit(1)
 
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -110,14 +109,14 @@ def upscale_image(input_path, output_path, model_name, passes):
     if isinstance(upscaled, np.ndarray):
         upscaled = cv2.cvtColor(upscaled, cv2.COLOR_RGB2BGR)
         cv2.imwrite(str(output_path), upscaled)
-        print(f"✅ Image upscalée sauvegardée : {output_path}")
+        print(f"✅ Upscaled image saved: {output_path}")
     else:
-        print("❌ Erreur : sortie de l'enhancement invalide.")
+        print("❌ Error: invalid output from enhancement.")
         sys.exit(1)
 
-# ▶ Vidéo
+# ▶ Video processing pipeline
 def upscale_video(input_path, output_path, model_name, passes):
-    print("🎬 Traitement de la vidéo...")
+    print("🎬 Processing video...")
     device = torch.device("cpu")
     model_path = str(MODEL_PATHS[model_name])
     model_instance = get_model_instance(model_name)
@@ -135,39 +134,39 @@ def upscale_video(input_path, output_path, model_name, passes):
     writer = imageio.get_writer(str(output_path), fps=fps)
 
     total = reader.count_frames()
-    print(f"🎞  {total} frames à traiter...")
+    print(f"🎞  {total} frames to process...")
 
-    for i, frame in enumerate(tqdm(reader, total=total, desc="🔁 Upscaling vidéo")):
+    for i, frame in enumerate(tqdm(reader, total=total, desc="🔁 Upscaling video")):
         upscaled = upscale_frame(modeler, frame, passes)
         writer.append_data(upscaled)
 
     writer.close()
-    print(f"✅ Vidéo upscalée sauvegardée : {output_path}")
+    print(f"✅ Upscaled video saved: {output_path}")
 
 # ▶ Main CLI
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("input", help="Fichier image ou vidéo à upscale")
-    parser.add_argument("output", help="Chemin de sortie")
-    parser.add_argument("--passes", type=int, default=1, choices=PASSES_ALLOWED, help="Nombre de passes (1/2/4/8/16)")
-    parser.add_argument("--model", default="RealESRGAN_x4plus", choices=MODELS, help="Modèle Real-ESRGAN")
+    parser.add_argument("input", help="Input image or video file to upscale")
+    parser.add_argument("output", help="Output file path")
+    parser.add_argument("--passes", type=int, default=1, choices=PASSES_ALLOWED, help="Number of passes (1/2/4/8/16)")
+    parser.add_argument("--model", default="RealESRGAN_x4plus", choices=MODELS, help="Real-ESRGAN model to use")
     args = parser.parse_args()
 
     if not MODEL_PATHS[args.model].exists():
-        print(f"❌ Le fichier modèle {MODEL_PATHS[args.model]} est introuvable.")
-        print("👉 Télécharge manuellement le modèle ici :")
+        print(f"❌ Model file {MODEL_PATHS[args.model]} not found.")
+        print("👉 Please download the model manually here:")
         print("   https://github.com/xinntao/Real-ESRGAN/blob/master/docs/pretrained_models.md")
         sys.exit(1)
 
     start = time()
-    print("🚀 Lancement de l'upscaling...")
+    print("🚀 Starting upscaling...")
 
     if is_video(args.input):
         upscale_video(args.input, args.output, args.model, args.passes)
     else:
         upscale_image(args.input, args.output, args.model, args.passes)
 
-    print(f"🕓 Terminé en {round(time() - start, 2)} secondes")
+    print(f"🕓 Finished in {round(time() - start, 2)} seconds")
 
 if __name__ == "__main__":
     main()
