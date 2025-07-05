@@ -106,32 +106,32 @@ python upscale.py input.mp4 output.mp4 --passes 4 --model RealESRGAN_x4plus
 
 ---
 
-## 🛠️ Alias Shell - Lancement en tâche de fond
+## 🛠️ Shell Aliases – Run in Background
 
-Ces deux alias permettent de :
+These two aliases allow you to:
 
-- `upscale-run`: **lancer l’upscaling en tâche de fond** avec `screen` et journaliser la sortie.
-- `upscale-env`: **activer rapidement l’environnement virtuel Python** pour Real-ESRGAN.
-
----
-
-### ✅ Prérequis
-
-- Dossier du projet : `/root/upscale`
-- Environnement virtuel activable : `/root/upscale/venv/bin/activate`
-- Script Python : `/root/upscale/upscale.py`
-- `screen` est installé (`apt install screen` si nécessaire)
+- `upscale-run`: **Launch the upscaling process in the background** using `screen` and log the output.
+- `upscale-env`: **Quickly activate the Python virtual environment** for Real-ESRGAN.
 
 ---
 
-### 🧩 Configuration des alias
+### ✅ Requirements
 
-Ajoutez ceci à votre `~/.bashrc`, `~/.zshrc`, ou `/root/.bashrc` :
+- Project directory: `/root/upscale`
+- Virtual environment: `/root/upscale/venv/bin/activate`
+- Python script: `/root/upscale/upscale.py`
+- `screen` must be installed (`apt install screen` if needed)
+
+---
+
+### 🧩 Alias Configuration
+
+Add this to your `~/.bashrc`, `~/.zshrc`, or `/root/.bashrc`:
 
 ```bash
 upscale-run() {
   LOGFILE=/root/upscale/upscale.log
-  screen -S upscale -dm bash -c "source /root/upscale/venv/bin/activate && python /root/upscale/upscale.py $1 $2 --passes $3 --model RealESRGAN_x4plus >> \$LOGFILE 2>&1"
+  screen -S upscale -dm bash -c "source /root/upscale/venv/bin/activate && python /root/upscale/upscale.py \$1 \$2 --passes \$3 --model RealESRGAN_x4plus >> \$LOGFILE 2>&1"
 }
 
 upscale-env() {
@@ -140,56 +140,56 @@ upscale-env() {
 }
 ```
 
-Ensuite, rechargez le shell :
+Then reload your shell:
 
 ```bash
 source ~/.bashrc
-# ou
+# or
 source ~/.zshrc
 ```
 
 ---
 
-### 🚀 Utilisation de `upscale-run`
+### 🚀 Using `upscale-run`
 
 ```bash
 upscale-run <input_path> <output_path> <passes>
 ```
 
-#### Exemple :
+#### Example
 
 ```bash
 upscale-run input/photo.jpg output/photo_upscaled.jpg 2
 ```
 
-Cela va :
+This will:
 
-- lancer un processus détaché dans un screen nommé `upscale`
-- activer l’environnement virtuel
-- exécuter le script avec les paramètres donnés
-- écrire les logs dans `/root/upscale/upscale.log`
+- Start a detached process in a `screen` session named `upscale`
+- Activate the virtual environment
+- Execute the script with the given parameters
+- Log output to `/root/upscale/upscale.log`
 
-#### 📖 Lire les logs
+#### 📖 Read logs
 
 ```bash
 tail -f /root/upscale/upscale.log
 ```
 
-#### 🖥 Rejoindre la session `screen`
+#### 🖥 Reattach to the `screen` session
 
 ```bash
 screen -r upscale
 ```
 
-#### ⏎ Détacher du screen
+#### ⏎ Detach from `screen`
 
-Appuyez sur : `Ctrl + A`, puis `D`
+Press: `Ctrl + A`, then `D`
 
 ---
 
-### 🧪 Utilisation de `upscale-env`
+### 🧪 Using `upscale-env`
 
-Permet de naviguer dans le dossier projet et d’activer l’environnement virtuel :
+This command navigates to the project folder and activates the Python virtual environment:
 
 ```bash
 upscale-env
@@ -197,13 +197,12 @@ upscale-env
 
 ---
 
-### 🧹 Gestion des sessions `screen`
+### 🧹 Managing `screen` Sessions
 
 ```bash
-screen -ls                   # Liste les sessions actives
-screen -S upscale -X quit    # Ferme la session "upscale"
+screen -ls                   # List active screen sessions
+screen -S upscale -X quit    # Terminate the "upscale" session
 ```
-
 
 ---
 
